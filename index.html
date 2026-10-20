@@ -1,0 +1,1419 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>中文网页生成器 · 多页标签 + 独立播放器版</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: "Microsoft YaHei", "PingFang SC", sans-serif; background: #f0f2f5; padding: 10px; color: #333; }
+h1 { text-align: center; color: #1a1a2e; margin-bottom: 5px; font-size: 22px; }
+.subtitle { text-align: center; color: #888; margin-bottom: 15px; font-size: 13px; }
+.tabs { display: flex; gap: 5px; max-width: 1200px; margin: 0 auto 15px; flex-wrap: wrap; }
+.tab { flex: 1; min-width: 65px; padding: 10px 5px; text-align: center; background: #ddd; border-radius: 8px 8px 0 0; cursor: pointer; font-size: 11px; font-weight: bold; transition: all .2s; }
+.tab.active { background: #4CAF50; color: white; }
+.tab-content { display: none; max-width: 1200px; margin: 0 auto; }
+.tab-content.active { display: block; }
+.panel { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 2px 10px rgba(0,0,0,.1); margin-bottom: 15px; }
+.panel h2 { color: #333; margin-bottom: 15px; font-size: 17px; border-bottom: 2px solid #4CAF50; padding-bottom: 8px; }
+label { display: block; margin-top: 10px; font-weight: bold; color: #555; font-size: 13px; }
+input, textarea, select { width: 100%; padding: 10px; margin-top: 4px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; }
+textarea { resize: vertical; }
+.row { display: flex; gap: 10px; }
+.row > * { flex: 1; }
+button { padding: 12px 24px; background: #4CAF50; color: white; border: none; border-radius: 8px; font-size: 15px; cursor: pointer; font-weight: bold; margin-top: 10px; }
+button:hover { background: #45a049; }
+button.secondary { background: #2196F3; }
+button.danger { background: #f44336; }
+button.small { padding: 8px 16px; font-size: 12px; }
+button:disabled { opacity: .6; cursor: not-allowed; }
+.page-bar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; padding: 10px; background: #e8f5e9; border-radius: 8px; margin-bottom: 15px; }
+.page-chip { padding: 6px 14px; background: white; border: 2px solid #4CAF50; border-radius: 20px; cursor: pointer; font-size: 13px; font-weight: bold; color: #4CAF50; transition: all .2s; }
+.page-chip.active { background: #4CAF50; color: white; }
+.page-chip .page-del { margin-left: 6px; color: #f44336; }
+.page-chip.active .page-del { color: #ffcdd2; }
+.page-bar input { width: 140px; margin: 0; padding: 6px 10px; font-size: 13px; }
+.page-bar button { margin: 0; padding: 6px 14px; font-size: 13px; }
+.storage-bar { display: flex; align-items: center; gap: 10px; padding: 8px 15px; background: #fff3cd; border: 1px solid #ffc107; border-radius: 8px; margin-bottom: 15px; font-size: 12px; color: #856404; }
+.storage-bar .usage { flex: 1; height: 8px; background: #ffe08a; border-radius: 4px; overflow: hidden; }
+.storage-bar .usage-fill { height: 100%; background: #ff9800; width: 0%; transition: width .3s; }
+.storage-bar button { margin: 0; padding: 4px 10px; font-size: 11px; background: #f44336; }
+.file-area { border: 2px dashed #ddd; border-radius: 8px; padding: 20px; text-align: center; margin-top: 10px; cursor: pointer; transition: all .2s; }
+.file-area:hover, .file-area.dragover { border-color: #4CAF50; background: #f0fff0; }
+.file-area input { display: none; }
+.file-list { margin-top: 10px; }
+.file-item { display: flex; align-items: center; gap: 10px; padding: 8px; background: #f5f5f5; border-radius: 6px; margin-top: 5px; font-size: 13px; }
+.file-item img { width: 40px; height: 40px; object-fit: cover; border-radius: 4px; }
+.file-item video { width: 60px; height: 40px; border-radius: 4px; }
+.file-item .remove { margin-left: auto; color: #f44336; cursor: pointer; font-weight: bold; }
+.progress-bar { width: 100%; height: 6px; background: #eee; border-radius: 3px; margin-top: 8px; overflow: hidden; display: none; }
+.progress-bar .fill { height: 100%; background: #4CAF50; width: 0%; transition: width .3s; }
+.empty-tip { padding: 15px; background: #fff3cd; border: 1px solid #ffc107; border-radius: 8px; text-align: center; }
+.empty-tip p { color: #856404; margin-bottom: 10px; }
+.dual-edit { display: flex; gap: 15px; margin-top: 15px; }
+.dual-edit > div { flex: 1; }
+.edit-box { border: 2px solid #ddd; border-radius: 8px; overflow: hidden; }
+.edit-box.cn { border-color: #4CAF50; }
+.edit-box.code { border-color: #2196F3; }
+.edit-box .box-header { padding: 10px 15px; font-weight: bold; font-size: 14px; color: white; display: flex; align-items: center; gap: 8px; }
+.edit-box.cn .box-header { background: #4CAF50; }
+.edit-box.code .box-header { background: #2196F3; }
+.edit-box textarea { border: none; border-radius: 0; height: 280px; font-size: 14px; }
+.edit-box.cn textarea { font-family: "Microsoft YaHei", sans-serif; }
+.edit-box.code textarea { font-family: "Courier New", monospace; background: #1a1a2e; color: #0f0; font-size: 13px; }
+.box-desc { font-size: 11px; color: rgba(255,255,255,.8); font-weight: normal; margin-left: auto; }
+.components { margin-top: 15px; }
+.comp-item { background: #f8f9fa; border: 1px solid #e0e0e0; border-radius: 8px; padding: 12px; margin-bottom: 10px; }
+.comp-item.dragging { opacity: .4; }
+.comp-header { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.comp-handle { cursor: move; color: #999; font-size: 18px; }
+.comp-type { font-weight: bold; font-size: 13px; color: #4CAF50; }
+.comp-toggle { margin-left: auto; color: #2196F3; cursor: pointer; font-size: 12px; }
+.comp-body { display: block; }
+.comp-body.hidden { display: none; }
+.comp-preview { background: white; border: 1px solid #ddd; border-radius: 8px; padding: 15px; margin-top: 15px; min-height: 200px; }
+.auto-save { position: fixed; bottom: 10px; right: 10px; background: #333; color: white; padding: 8px 15px; border-radius: 20px; font-size: 11px; opacity: .7; z-index: 999; transition: opacity .3s; }
+.preview-section-cn { border-top: 3px solid #4CAF50; margin: 20px 0; padding-top: 15px; }
+.preview-section-code { border-top: 3px solid #2196F3; margin: 20px 0; padding-top: 15px; }
+.export-mask { position: fixed; inset: 0; background: rgba(0,0,0,.55); z-index: 9999; display: none; align-items: center; justify-content: center; flex-direction: column; color: white; gap: 15px; }
+.export-mask.show { display: flex; }
+.export-mask .spinner { width: 50px; height: 50px; border: 5px solid rgba(255,255,255,.3); border-top-color: #4CAF50; border-radius: 50%; animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (max-width: 768px) { .dual-edit { flex-direction: column; } .row { flex-direction: column; gap: 0; } .tabs { gap: 3px; } .tab { font-size: 10px; padding: 8px 2px; } }
+</style>
+</head>
+<body>
+
+<h1>🛠 中文网页生成器 · 多页标签 + 独立播放器版</h1>
+<p class="subtitle">多页标签 ｜ 独立音乐/视频播放器 ｜ 导出媒体内嵌 ｜ 项目保存/导入续编 ｜ 完全离线</p>
+
+<div class="tabs">
+<div class="tab active" onclick="switchTab(0)">📄 编辑</div>
+<div class="tab" onclick="switchTab(1)">🎵 音乐</div>
+<div class="tab" onclick="switchTab(2)">🖼 图片</div>
+<div class="tab" onclick="switchTab(3)">🎬 视频</div>
+<div class="tab" onclick="switchTab(4)">👁 预览</div>
+<div class="tab" onclick="switchTab(5)">📖 帮助</div>
+</div>
+
+<!-- Tab 0 -->
+<div class="tab-content active">
+<div class="panel">
+<div class="storage-bar" id="storageBar" style="display:none;">
+  <span>💾 存储用量</span>
+  <div class="usage"><div class="usage-fill" id="usageFill"></div></div>
+  <span id="usageText">0%</span>
+  <button class="small danger" onclick="clearAllCache()">清理缓存</button>
+</div>
+
+<h2>📚 页面管理</h2>
+<div class="page-bar" id="pageBar"></div>
+<p style="font-size:12px;color:#888;margin-top:6px;">页面数不限。导出后顶部会保留标签栏，点“主页”永远回到第一页。</p>
+
+<label>当前页标题</label>
+<input id="pageTitle" value="首页">
+<label>背景颜色</label>
+<select id="pageBg">
+<option value="#ffffff">白色</option>
+<option value="#f5f5dc">米色</option>
+<option value="#e3f2fd">淡蓝</option>
+<option value="#1a1a2e">深色</option>
+</select>
+
+<h2 style="margin-top:20px;">🧩 组件模式</h2>
+<p style="font-size:12px;color:#666;margin-bottom:10px;">点按钮加组件，拖拽排序。</p>
+<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;">
+<button class="small" onclick="addComponent('heading')">＋ 标题</button>
+<button class="small" onclick="addComponent('text')">＋ 文字</button>
+<button class="small" onclick="addComponent('image')">＋ 图片</button>
+<button class="small" onclick="addComponent('gallery')">＋ 相册</button>
+<button class="small" onclick="addComponent('video')">＋ 视频</button>
+<button class="small" onclick="addComponent('music')">＋ 音乐</button>
+<button class="small" onclick="addComponent('button')">＋ 按钮</button>
+<button class="small" onclick="addComponent('divider')">＋ 分隔</button>
+<button class="small" onclick="addComponent('list')">＋ 列表</button>
+<button class="small" onclick="addComponent('quote')">＋ 引用</button>
+<button class="small" onclick="addComponent('countdown')">＋ 倒计时</button>
+<button class="small" onclick="addComponent('contact')">＋ 联系卡</button>
+<button class="small" onclick="addComponent('player-music')" style="background:#9C27B0;">＋ 独立音乐播放器</button>
+<button class="small" onclick="addComponent('player-video')" style="background:#9C27B0;">＋ 独立视频播放器</button>
+<button class="small" onclick="addComponent('custom')" style="background:#FF9800;">＋ 自定义代码</button>
+</div>
+<div class="components" id="componentsList"></div>
+
+<h2 style="margin-top:20px;">💻 双编辑框</h2>
+<p style="font-size:12px;color:#666;margin-bottom:10px;">左中文自动翻译，右代码原样输出。</p>
+<div class="dual-edit">
+<div class="edit-box cn">
+<div class="box-header">🈶 中文输入区 <span class="box-desc">填中文 → 自动生成代码</span></div>
+<textarea id="cnInput" placeholder="大标题：我的主页&#10;副标题：欢迎&#10;正文：你好！"></textarea>
+</div>
+<div class="edit-box code">
+<div class="box-header">💻 代码输入区 <span class="box-desc">原样输出</span></div>
+<textarea id="codeInput" placeholder="<h1 style='color:red;'>Hello</h1>"></textarea>
+</div>
+</div>
+
+<button id="exportBtn" onclick="generatePage()" style="width:100%;margin-top:20px;font-size:18px;padding:16px;">🚀 导出完整网页（媒体内嵌 + 顶部标签栏）</button>
+
+<!-- 新增：项目保存 / 导入续编 -->
+<div style="display:flex;gap:10px;margin-top:12px;flex-wrap:wrap;">
+  <button onclick="saveProjectFile()" style="flex:1;background:#9C27B0;font-size:16px;padding:14px;">💾 保存项目（续编用）</button>
+  <button onclick="document.getElementById('importProjectInput').click()" style="flex:1;background:#2196F3;font-size:16px;padding:14px;">📂 导入项目续编</button>
+  <input type="file" id="importProjectInput" accept=".json" style="display:none" onchange="importProjectFile(this.files[0]); this.value='';">
+</div>
+<p style="font-size:12px;color:#888;margin-top:8px;text-align:center;">保存项目会下载 .json 文件，下次用「导入项目续编」选择它即可恢复全部内容继续编辑</p>
+</div>
+</div>
+
+<!-- Tab 1 -->
+<div class="tab-content">
+<div class="panel">
+<h2>🎵 本地音乐上传</h2>
+<div class="file-area" onclick="document.getElementById('musicInput').click()" ondragover="event.preventDefault();this.classList.add('dragover')" ondragleave="this.classList.remove('dragover')" ondrop="handleMusicDrop(event)">
+<p>🎵 点击选择音乐，或拖拽到这里</p>
+<p style="font-size:12px;color:#aaa;">支持 MP3、WAV、OGG、FLAC</p>
+<input type="file" id="musicInput" accept="audio/*" multiple onchange="handleMusic(this.files)">
+</div>
+<div class="progress-bar" id="musicProgress"><div class="fill" id="musicFill"></div></div>
+<div class="file-list" id="musicList"></div>
+</div>
+</div>
+
+<!-- Tab 2 -->
+<div class="tab-content">
+<div class="panel">
+<h2>🖼 本地图片上传</h2>
+<div class="file-area" onclick="document.getElementById('imageInput').click()" ondragover="event.preventDefault();this.classList.add('dragover')" ondragleave="this.classList.remove('dragover')" ondrop="handleImageDrop(event)">
+<p>📁 点击选择图片，或拖拽到这里</p>
+<input type="file" id="imageInput" accept="image/*" multiple onchange="handleImages(this.files)">
+</div>
+<div class="progress-bar" id="imgProgress"><div class="fill" id="imgFill"></div></div>
+<div class="file-list" id="imageList"></div>
+</div>
+</div>
+
+<!-- Tab 3 -->
+<div class="tab-content">
+<div class="panel">
+<h2>🎬 本地视频上传</h2>
+<div class="file-area" onclick="document.getElementById('videoInput').click()" ondragover="event.preventDefault();this.classList.add('dragover')" ondragleave="this.classList.remove('dragover')" ondrop="handleVideoDrop(event)">
+<p>📁 点击选择视频，或拖拽到这里</p>
+<input type="file" id="videoInput" accept="video/*" multiple onchange="handleVideos(this.files)">
+</div>
+<div class="progress-bar" id="vidProgress"><div class="fill" id="vidFill"></div></div>
+<div class="file-list" id="videoList"></div>
+</div>
+</div>
+
+<!-- Tab 4 -->
+<div class="tab-content">
+<div class="panel">
+<h2>👁 实时预览（当前页）</h2>
+<div class="comp-preview" id="livePreview">
+<p style="color:#aaa;text-align:center;margin-top:80px;">添加内容后显示预览</p>
+</div>
+</div>
+</div>
+
+<!-- Tab 5 -->
+<div class="tab-content">
+<div class="panel">
+<h2>📖 使用帮助</h2>
+<div style="font-size:14px;line-height:2;">
+<p><strong>📚 多页标签：</strong>页面数不限。导出后顶部有标签栏，点“主页”永远回第一页，点其他标签显示对应页，像浏览器一样。</p>
+<p><strong>🎵 独立音乐播放器：</strong>多曲目切换、上一首/下一首、进度、音量、循环/随机。</p>
+<p><strong>🎬 独立视频播放器：</strong>自定义控制条（播放/暂停、进度、音量、全屏），不依赖浏览器默认控件。</p>
+<p><strong>🈶 中文输入区：</strong>自动翻译成 HTML。</p>
+<p><strong>💻 代码输入区：</strong>直接写 HTML/CSS/JS，原样嵌入。</p>
+<p><strong>💾 存储：</strong>页面结构存 localStorage，大文件存 IndexedDB。</p>
+<p><strong>📤 导出：</strong>媒体转 base64 内嵌，文件自包含、可离线、可跨设备播放。体积超 200MB 会提示删减。</p>
+<p><strong>🆕 保存项目 / 导入项目：</strong>点「💾 保存项目」下载 .json 文件，下次点「📂 导入项目续编」选择它即可恢复全部内容继续编辑。<strong>注意：媒体文件存在浏览器 IndexedDB，换电脑或清缓存后需重新上传媒体。</strong></p>
+</div>
+</div>
+</div>
+
+<div class="auto-save" id="autoSaveTip">💾 已自动保存</div>
+
+<div class="export-mask" id="exportMask">
+  <div class="spinner"></div>
+  <div id="exportStatus">正在准备导出…</div>
+</div>
+
+<script>
+// ================== 全局状态 ==================
+let pages = [];
+let currentPage = 0;
+let images = [];
+let videos = [];
+let musics = [];
+let dragIdx = null;
+let compIdCounter = 0;
+let idb = null;
+
+function esc(s) {
+  return String(s || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+// ================== IndexedDB ==================
+function openIDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open('webgen_files', 1);
+    req.onupgradeneeded = e => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains('files')) db.createObjectStore('files', { keyPath: 'id' });
+    };
+    req.onsuccess = e => { idb = e.target.result; resolve(idb); };
+    req.onerror = e => reject(e.target.error);
+  });
+}
+function idbPut(id, blob, type, name) {
+  return new Promise((resolve, reject) => {
+    const tx = idb.transaction('files', 'readwrite');
+    tx.objectStore('files').put({ id, blob, type, name, time: Date.now() });
+    tx.oncomplete = () => resolve();
+    tx.onerror = e => reject(e.target.error);
+  });
+}
+function idbGet(id) {
+  return new Promise((resolve, reject) => {
+    const tx = idb.transaction('files', 'readonly');
+    const req = tx.objectStore('files').get(id);
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = e => reject(e.target.error);
+  });
+}
+function idbDelete(id) {
+  return new Promise((resolve, reject) => {
+    const tx = idb.transaction('files', 'readwrite');
+    tx.objectStore('files').delete(id);
+    tx.oncomplete = () => resolve();
+    tx.onerror = e => reject(e.target.error);
+  });
+}
+function idbClear() {
+  return new Promise((resolve, reject) => {
+    const tx = idb.transaction('files', 'readwrite');
+    tx.objectStore('files').clear();
+    tx.oncomplete = () => resolve();
+    tx.onerror = e => reject(e.target.error);
+  });
+}
+
+// ================== 存储用量 ==================
+async function updateStorageBar() {
+  if (!navigator.storage || !navigator.storage.estimate) {
+    document.getElementById('storageBar').style.display = 'none';
+    return;
+  }
+  const est = await navigator.storage.estimate();
+  const used = est.usage || 0;
+  const quota = est.quota || 1;
+  const pct = Math.min(100, Math.round(used / quota * 100));
+  document.getElementById('storageBar').style.display = 'flex';
+  document.getElementById('usageFill').style.width = pct + '%';
+  const usedMB = (used / 1024 / 1024).toFixed(1);
+  const quotaMB = (quota / 1024 / 1024).toFixed(0);
+  document.getElementById('usageText').textContent = `${usedMB} MB / ${quotaMB} MB (${pct}%)`;
+  document.getElementById('usageFill').style.background = pct > 80 ? '#f44336' : '#ff9800';
+}
+
+// ================== 页面模型 ==================
+let pageIdCounter = 0;
+function newPage(title) {
+  return { id: pageIdCounter++, title: title || '新页面', bg: '#ffffff', components: [], cnInput: '', codeInput: '' };
+}
+function initPages() { if (pages.length === 0) pages = [newPage('主页')]; }
+
+function renderPageBar() {
+  const bar = document.getElementById('pageBar');
+  let html = '';
+  pages.forEach((p, i) => {
+    const label = i === 0 ? '🏠 主页' : esc(p.title);
+    html += `<span class="page-chip ${i === currentPage ? 'active' : ''}" onclick="switchPage(${i})">
+      ${label}
+      ${pages.length > 1 ? `<span class="page-del" onclick="event.stopPropagation();deletePage(${i})">✕</span>` : ''}
+    </span>`;
+  });
+  html += `<input id="newPageName" placeholder="新页面名称">
+    <button class="small" onclick="addPage()">＋ 添加页</button>`;
+  bar.innerHTML = html;
+}
+function addPage() {
+  const nameInput = document.getElementById('newPageName');
+  const name = (nameInput.value || '').trim() || ('页面' + (pages.length + 1));
+  saveCurrentPage();
+  pages.push(newPage(name));
+  currentPage = pages.length - 1;
+  loadPageToUI(currentPage); renderPageBar(); autoSave(); switchTab(0);
+}
+function deletePage(i) {
+  if (pages.length <= 1) return;
+  if (!confirm('确定删除页面「' + pages[i].title + '」吗？')) return;
+  pages.splice(i, 1);
+  if (currentPage >= pages.length) currentPage = pages.length - 1;
+  loadPageToUI(currentPage); renderPageBar(); autoSave();
+}
+function switchPage(i) {
+  if (i === currentPage) return;
+  saveCurrentPage();
+  currentPage = i;
+  loadPageToUI(i); renderPageBar();
+}
+function saveCurrentPage() {
+  if (!pages[currentPage]) return;
+  pages[currentPage].title = document.getElementById('pageTitle').value;
+  pages[currentPage].bg = document.getElementById('pageBg').value;
+  pages[currentPage].cnInput = document.getElementById('cnInput').value;
+  pages[currentPage].codeInput = document.getElementById('codeInput').value;
+}
+function loadPageToUI(i) {
+  const p = pages[i];
+  if (!p) return;
+  document.getElementById('pageTitle').value = p.title;
+  document.getElementById('pageBg').value = p.bg;
+  document.getElementById('cnInput').value = p.cnInput;
+  document.getElementById('codeInput').value = p.codeInput;
+  components = p.components;
+  renderComponents();
+}
+
+// ================== 防抖保存 ==================
+let saveTimer = null;
+let _rendering = false;
+function autoSave() {
+  saveCurrentPage();
+  const data = {
+    pages: pages.map(p => ({
+      id: p.id, title: p.title, bg: p.bg, cnInput: p.cnInput, codeInput: p.codeInput,
+      components: p.components.map(c => ({ id: c.id, type: c.type, data: c.data, _collapsed: c._collapsed || false }))
+    })),
+    currentPage,
+    images: images.map(i => ({ name: i.name, id: i.id })),
+    videos: videos.map(v => ({ name: v.name, id: v.id })),
+    musics: musics.map(m => ({ name: m.name, id: m.id }))
+  };
+  try {
+    localStorage.setItem('webgen_autosave_v4', JSON.stringify(data));
+    const tip = document.getElementById('autoSaveTip');
+    tip.style.opacity = '.9';
+    clearTimeout(tip._timer);
+    tip._timer = setTimeout(() => { tip.style.opacity = '.4'; }, 1200);
+  } catch (e) {
+    console.warn('localStorage 保存失败:', e);
+  }
+  updateStorageBar();
+}
+function scheduleSave() {
+  if (_rendering) return;
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => { saveCurrentPage(); autoSave(); }, 1200);
+}
+['pageTitle', 'pageBg', 'cnInput', 'codeInput'].forEach(id => {
+  const el = document.getElementById(id);
+  el.addEventListener('input', () => {
+    if (_rendering) return;
+    if (pages[currentPage]) {
+      if (id === 'pageTitle') pages[currentPage].title = el.value;
+      if (id === 'pageBg') pages[currentPage].bg = el.value;
+      if (id === 'cnInput') pages[currentPage].cnInput = el.value;
+      if (id === 'codeInput') pages[currentPage].codeInput = el.value;
+    }
+    scheduleSave();
+  });
+});
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') { saveCurrentPage(); autoSave(); }
+});
+window.addEventListener('beforeunload', () => { saveCurrentPage(); autoSave(); });
+
+// ================== 加载 ==================
+async function loadAutoSave() {
+  try {
+    await openIDB();
+    const saved = localStorage.getItem('webgen_autosave_v4');
+    if (!saved) { initPages(); loadPageToUI(0); renderPageBar(); updateStorageBar(); return; }
+    const data = JSON.parse(saved);
+    pages = (data.pages || [newPage('主页')]).map(p => ({
+      id: p.id != null ? p.id : pageIdCounter++,
+      title: p.title || '页面', bg: p.bg || '#ffffff',
+      cnInput: p.cnInput || '', codeInput: p.codeInput || '',
+      components: (p.components || []).map(c => ({ id: c.id, type: c.type, data: c.data, _collapsed: c._collapsed }))
+    }));
+    pages.forEach(p => { if (p.id >= pageIdCounter) pageIdCounter = p.id + 1; });
+    currentPage = data.currentPage || 0;
+    if (currentPage >= pages.length) currentPage = 0;
+    pages.forEach(p => p.components.forEach(c => { if (c.id >= compIdCounter) compIdCounter = c.id + 1; }));
+
+    images = [];
+    for (const info of (data.images || [])) {
+      const rec = await idbGet(info.id);
+      if (rec && rec.blob) images.push({ name: info.name, id: info.id, data: URL.createObjectURL(rec.blob), mime: rec.type });
+    }
+    videos = [];
+    for (const info of (data.videos || [])) {
+      const rec = await idbGet(info.id);
+      if (rec && rec.blob) videos.push({ name: info.name, id: info.id, data: URL.createObjectURL(rec.blob), mime: rec.type });
+    }
+    musics = [];
+    for (const info of (data.musics || [])) {
+      const rec = await idbGet(info.id);
+      if (rec && rec.blob) musics.push({ name: info.name, id: info.id, data: URL.createObjectURL(rec.blob), mime: rec.type });
+    }
+
+    loadPageToUI(currentPage);
+    renderPageBar(); renderMusicList(); renderImageList(); renderVideoList(); updateStorageBar();
+  } catch (e) {
+    console.warn('读取失败:', e);
+    initPages(); loadPageToUI(0); renderPageBar();
+  }
+}
+
+async function clearAllCache() {
+  if (!confirm('确定清理所有缓存吗？\n将删除所有上传媒体和页面内容。\n建议先导出网页再清理！')) return;
+  try {
+    await idbClear();
+    localStorage.removeItem('webgen_autosave_v4');
+    location.reload();
+  } catch (e) { alert('清理失败：' + e.message); }
+}
+
+function switchTab(idx) {
+  document.querySelectorAll('.tab').forEach((t, i) => t.classList.toggle('active', i === idx));
+  document.querySelectorAll('.tab-content').forEach((c, i) => c.classList.toggle('active', i === idx));
+  if (idx === 4) renderPreview();
+}
+
+// ================== 中文翻译 ==================
+function translateChinese(text) {
+  let html = '';
+  const lines = text.split('\n');
+  let inIfBlock = false, ifCondition = '', ifBody = '', elseBody = '', inElse = false;
+  let inLoopBlock = false, loopStart = 0, loopEnd = 0, loopBody = '';
+
+  for (let rawLine of lines) {
+    let line = rawLine.trim();
+    if (!line) { html += '\n'; continue; }
+    if (inIfBlock) {
+      if (line === '否则') { inElse = true; continue; }
+      if (line === '结束') {
+        const c = ifCondition.replace(/`/g, '\\`').replace(/\$/g, '\\$');
+        const b = ifBody.replace(/`/g, '\\`').replace(/\$/g, '\\$');
+        const e = elseBody.replace(/`/g, '\\`').replace(/\$/g, '\\$');
+        html += `<script>if (${c}) { document.write(\`${b}\`); } else { document.write(\`${e}\`); }<\/script>\n`;
+        inIfBlock = false; continue;
+      }
+      if (inElse) elseBody += line + ' ';
+      else ifBody += line + ' ';
+      continue;
+    }
+    if (inLoopBlock) {
+      if (line === '结束') {
+        const body = loopBody.replace(/'/g, "\\'");
+        html += `<script>for(let __i=${loopStart};__i<=${loopEnd};__i++){ document.write('${body}'.replace(/\\{i\\}/g, __i)); }<\/script>\n`;
+        inLoopBlock = false; continue;
+      }
+      loopBody += line + ' ';
+      continue;
+    }
+    let m;
+    m = line.match(/^(大标题|主标题|标题)[：:]\s*(.+)$/);
+    if (m) { html += `<h1 style="text-align:center;margin:20px 0;font-size:32px;">${esc(m[2])}</h1>\n`; continue; }
+    m = line.match(/^(副标题|小标题)[：:]\s*(.+)$/);
+    if (m) { html += `<h2 style="text-align:center;color:#666;font-weight:normal;margin:10px 0;">${esc(m[2])}</h2>\n`; continue; }
+    m = line.match(/^(正文|内容|文字)[：:]\s*(.+)$/);
+    if (m) { html += `<p style="font-size:16px;line-height:1.8;margin:15px 0;">${esc(m[2])}</p>\n`; continue; }
+    m = line.match(/^(按钮文字|按钮)[：:]\s*(.+)$/);
+    if (m) { html += `<div style="text-align:center;margin:20px 0;"><a href="#" style="display:inline-block;padding:14px 40px;background:#4CAF50;color:white;text-decoration:none;border-radius:8px;font-weight:bold;">${esc(m[2])}</a></div>\n`; continue; }
+    m = line.match(/^(链接|网址)[：:]\s*(.+)$/);
+    if (m) { html += `<p style="margin:10px 0;"><a href="${esc(m[2])}" target="_blank" style="color:#2196F3;">${esc(m[2])}</a></p>\n`; continue; }
+    m = line.match(/^(图片|插图)[：:]\s*(.+)$/);
+    if (m) { html += `<div style="text-align:center;margin:15px 0;"><img src="${esc(m[2])}" style="max-width:100%;border-radius:8px;"></div>\n`; continue; }
+    m = line.match(/^显示\s+"?([^"]+)"?$/);
+    if (m) { html += `<p style="margin:10px 0;">${esc(m[1])}</p>\n`; continue; }
+    m = line.match(/^设\s+(\w+)\s*=\s*(.+)$/);
+    if (m) { const v = m[2].replace(/`/g, '\\`').replace(/\$/g, '\\$'); html += `<script>let ${m[1]} = ${v};<\/script>\n`; continue; }
+    m = line.match(/^如果\s+(.+)\s+则$/);
+    if (m) { ifCondition = m[1]; inIfBlock = true; inElse = false; ifBody = ''; elseBody = ''; continue; }
+    m = line.match(/^循环\s+从\s+(\d+)\s+到\s+(\d+)$/);
+    if (m) { loopStart = +m[1]; loopEnd = +m[2]; inLoopBlock = true; loopBody = ''; continue; }
+    html += `<p style="font-size:16px;line-height:1.8;margin:10px 0;">${esc(line)}</p>\n`;
+  }
+  if (inIfBlock) {
+    const c = ifCondition.replace(/`/g, '\\`').replace(/\$/g, '\\$');
+    const b = ifBody.replace(/`/g, '\\`').replace(/\$/g, '\\$');
+    html += `<script>if (${c}) { document.write(\`${b}\`); }<\/script>\n`;
+  }
+  if (inLoopBlock) {
+    html += `<script>for(let __i=${loopStart};__i<=${loopEnd};__i++){ document.write('${loopBody.replace(/'/g, "\\'")}'); }<\/script>\n`;
+  }
+  return html;
+}
+
+// ================== 组件 ==================
+function addComponent(type) {
+  const id = compIdCounter++;
+  components.push({ id, type, data: getDefaultData(type) });
+  renderComponents(); autoSave();
+}
+function getDefaultData(type) {
+  switch (type) {
+    case 'heading': return { text: '大标题', size: '32', color: '#333' };
+    case 'text': return { content: '这里是正文内容...' };
+    case 'image': return { src: '', caption: '' };
+    case 'gallery': return { images: [] };
+    case 'video': return { src: '', type: 'local' };
+    case 'music': return { tracks: [], theme: 'gradient', autoplay: false, loop: false };
+    case 'button': return { text: '点击按钮', link: 'https://', color: '#4CAF50' };
+    case 'divider': return { style: 'solid', color: '#ddd', width: '100' };
+    case 'list': return { items: ['项目一', '项目二', '项目三'] };
+    case 'quote': return { text: '这是一段引用文字', author: '' };
+    case 'countdown': return { year: '2026', month: '12', day: '31', hour: '23', minute: '59' };
+    case 'contact': return { name: '', phone: '', email: '', wechat: '' };
+    case 'player-music': return { tracks: [], theme: 'gradient', autoplay: false, loop: false, shuffle: false };
+    case 'player-video': return { src: '', caption: '' };
+    case 'custom': return { code: '<div style="padding:20px;background:#f0f8ff;border-radius:8px;">自定义代码区域</div>' };
+    default: return {};
+  }
+}
+function removeComponent(idx) {
+  if (!confirm('确定删除这个组件吗？')) return;
+  components.splice(idx, 1); renderComponents(); autoSave();
+}
+function toggleComp(idx) { components[idx]._collapsed = !components[idx]._collapsed; renderComponents(); }
+function dragStart(idx, ev) {
+  dragIdx = idx;
+  ev.currentTarget.classList.add('dragging');
+  ev.dataTransfer.effectAllowed = 'move';
+  ev.dataTransfer.setData('text/plain', idx);
+}
+function dragEnd(ev) { ev.currentTarget.classList.remove('dragging'); }
+function dragOver(ev) { ev.preventDefault(); ev.dataTransfer.dropEffect = 'move'; }
+function dragDrop(idx) {
+  if (dragIdx !== null && dragIdx !== idx) {
+    const item = components.splice(dragIdx, 1)[0];
+    components.splice(idx, 0, item);
+    renderComponents(); autoSave();
+  }
+  dragIdx = null;
+}
+function renderComponents() {
+  _rendering = true;
+  const list = document.getElementById('componentsList');
+  if (components.length === 0) {
+    list.innerHTML = '<p style="color:#aaa;text-align:center;padding:20px;font-size:13px;">还没有组件，点击上方按钮添加</p>';
+    _rendering = false; return;
+  }
+  list.innerHTML = components.map((comp, idx) => `
+    <div class="comp-item" draggable="true"
+         ondragstart="dragStart(${idx}, event)" ondragend="dragEnd(event)"
+         ondragover="dragOver(event)" ondrop="dragDrop(${idx})">
+      <div class="comp-header">
+        <span class="comp-handle">≡</span>
+        <span class="comp-type">${getTypeName(comp.type)}</span>
+        <span class="comp-toggle" onclick="toggleComp(${idx})">${comp._collapsed ? '展开 ▼' : '收起 ▲'}</span>
+        <span class="comp-toggle" onclick="removeComponent(${idx})" style="color:#f44336;">删除 ✕</span>
+      </div>
+      <div class="comp-body ${comp._collapsed ? 'hidden' : ''}">${renderCompEditor(comp, idx)}</div>
+    </div>
+  `).join('');
+  _rendering = false;
+}
+function getTypeName(type) {
+  const names = { heading: '大标题', text: '段落文字', image: '图片', gallery: '相册', video: '视频', music: '音乐播放器', button: '按钮', divider: '分隔线', list: '列表', quote: '引用', countdown: '倒计时', contact: '联系卡片', 'player-music': '独立音乐播放器', 'player-video': '独立视频播放器', custom: '自定义代码' };
+  return names[type] || type;
+}
+function renderCompEditor(comp, idx) {
+  switch (comp.type) {
+    case 'heading':
+      return `<label>文字</label><input onchange="updateComp(${idx},'text',this.value)" value="${esc(comp.data.text)}">
+        <div class="row">
+          <div><label>字号</label><input onchange="updateComp(${idx},'size',this.value)" value="${comp.data.size}"></div>
+          <div><label>颜色</label><input onchange="updateComp(${idx},'color',this.value)" value="${comp.data.color}"></div>
+        </div>`;
+    case 'text':
+      return `<label>正文内容</label><textarea rows="4" onchange="updateComp(${idx},'content',this.value)">${esc(comp.data.content)}</textarea>`;
+    case 'image':
+      return `<label>选择已上传图片</label>
+        <select onchange="updateComp(${idx},'src',this.value)">
+          <option value="">-- 选择 --</option>
+          ${images.map(img => `<option value="${esc(img.data)}" ${comp.data.src === img.data ? 'selected' : ''}>${esc(img.name)}</option>`).join('')}
+        </select>
+        <label>或网络URL</label>
+        <input placeholder="https://..." onchange="updateComp(${idx},'src',this.value)" value="${comp.data.src && !comp.data.src.startsWith('blob:') ? esc(comp.data.src) : ''}">
+        <label>说明</label>
+        <input onchange="updateComp(${idx},'caption',this.value)" value="${esc(comp.data.caption)}">`;
+    case 'gallery':
+      return `<label>选择多张图片（Ctrl多选）</label>
+        <select multiple size="4" onchange="updateCompGallery(${idx}, this)">
+          ${images.map(img => `<option value="${esc(img.data)}" ${comp.data.images.includes(img.data) ? 'selected' : ''}>${esc(img.name)}</option>`).join('')}
+        </select>
+        <label>或网络URL（每行一个）</label>
+        <textarea rows="3" onchange="updateCompGalleryUrls(${idx}, this.value)">${comp.data.images.filter(s => s.startsWith('http')).join('\n')}</textarea>`;
+    case 'video':
+      return `<label>来源</label>
+        <select onchange="updateCompVideoType(${idx}, this.value)">
+          <option value="local" ${comp.data.type === 'local' ? 'selected' : ''}>本地</option>
+          <option value="online" ${comp.data.type === 'online' ? 'selected' : ''}>在线</option>
+        </select>
+        ${comp.data.type === 'local'
+          ? `<label>选择视频</label>
+             <select onchange="updateComp(${idx},'src',this.value)">
+               <option value="">-- 选择视频 --</option>
+               ${videos.map(v => `<option value="${esc(v.data)}" ${comp.data.src === v.data ? 'selected' : ''}>${esc(v.name)}</option>`).join('')}
+             </select>`
+          : `<label>B站 BV号</label>
+             <input placeholder="BV1xx411x7xx" onchange="updateComp(${idx},'src','bili:'+this.value.trim())" value="${comp.data.src && comp.data.src.startsWith('bili:') ? esc(comp.data.src.slice(5)) : ''}">
+             <label>YouTube ID</label>
+             <input placeholder="dQw4w9WgXcQ" onchange="updateComp(${idx},'src','yt:'+this.value.trim())" value="${comp.data.src && comp.data.src.startsWith('yt:') ? esc(comp.data.src.slice(3)) : ''}">`}`;
+    case 'music':
+      return `<label>选择音乐（Ctrl多选）</label>
+        <select multiple size="4" onchange="updateCompMusic(${idx}, this)">
+          ${musics.map(m => `<option value="${esc(m.data)}" ${comp.data.tracks.includes(m.data) ? 'selected' : ''}>${esc(m.name)}</option>`).join('')}
+        </select>
+        <p style="font-size:11px;color:#888;margin-top:5px;">${musics.length} 首已上传</p>
+        <label>主题</label>
+        <select onchange="updateComp(${idx},'theme',this.value)">
+          <option value="gradient" ${comp.data.theme === 'gradient' ? 'selected' : ''}>渐变紫</option>
+          <option value="dark" ${comp.data.theme === 'dark' ? 'selected' : ''}>深色</option>
+          <option value="light" ${comp.data.theme === 'light' ? 'selected' : ''}>浅色</option>
+        </select>
+        <div style="display:flex;gap:15px;margin-top:10px;">
+          <label style="display:flex;align-items:center;gap:5px;font-weight:normal;"><input type="checkbox" ${comp.data.autoplay ? 'checked' : ''} onchange="updateComp(${idx},'autoplay',this.checked)"> 自动播放</label>
+          <label style="display:flex;align-items:center;gap:5px;font-weight:normal;"><input type="checkbox" ${comp.data.loop ? 'checked' : ''} onchange="updateComp(${idx},'loop',this.checked)"> 循环播放</label>
+        </div>`;
+    case 'button':
+      return `<div class="row">
+          <div><label>文字</label><input onchange="updateComp(${idx},'text',this.value)" value="${esc(comp.data.text)}"></div>
+          <div><label>链接</label><input onchange="updateComp(${idx},'link',this.value)" value="${esc(comp.data.link)}"></div>
+        </div><label>颜色</label><input onchange="updateComp(${idx},'color',this.value)" value="${esc(comp.data.color)}">`;
+    case 'divider':
+      return `<div class="row">
+          <div><label>样式</label><select onchange="updateComp(${idx},'style',this.value)">
+            <option value="solid" ${comp.data.style === 'solid' ? 'selected' : ''}>实线</option>
+            <option value="dashed" ${comp.data.style === 'dashed' ? 'selected' : ''}>虚线</option>
+            <option value="dotted" ${comp.data.style === 'dotted' ? 'selected' : ''}>点线</option>
+          </select></div>
+          <div><label>颜色</label><input onchange="updateComp(${idx},'color',this.value)" value="${esc(comp.data.color)}"></div>
+          <div><label>宽度(%)</label><input type="number" min="1" max="100" onchange="updateComp(${idx},'width',this.value)" value="${esc(comp.data.width)}"></div>
+        </div>`;
+    case 'list':
+      return `<label>列表项（每行一个）</label>
+        <textarea rows="4" onchange="updateCompList(${idx}, this.value)">${esc(comp.data.items.join('\n'))}</textarea>`;
+    case 'quote':
+      return `<label>引用文字</label>
+        <textarea rows="3" onchange="updateComp(${idx},'text',this.value)">${esc(comp.data.text)}</textarea>
+        <label>作者</label><input onchange="updateComp(${idx},'author',this.value)" value="${esc(comp.data.author)}">`;
+    case 'countdown':
+      return `<div class="row">
+          <div><label>年</label><input onchange="updateComp(${idx},'year',this.value)" value="${esc(comp.data.year)}"></div>
+          <div><label>月</label><input onchange="updateComp(${idx},'month',this.value)" value="${esc(comp.data.month)}"></div>
+          <div><label>日</label><input onchange="updateComp(${idx},'day',this.value)" value="${esc(comp.data.day)}"></div>
+        </div>
+        <div class="row">
+          <div><label>时</label><input onchange="updateComp(${idx},'hour',this.value)" value="${esc(comp.data.hour)}"></div>
+          <div><label>分</label><input onchange="updateComp(${idx},'minute',this.value)" value="${esc(comp.data.minute)}"></div>
+        </div>`;
+    case 'contact':
+      return `<div class="row">
+          <div><label>姓名</label><input onchange="updateComp(${idx},'name',this.value)" value="${esc(comp.data.name)}"></div>
+          <div><label>电话</label><input onchange="updateComp(${idx},'phone',this.value)" value="${esc(comp.data.phone)}"></div>
+        </div>
+        <div class="row">
+          <div><label>邮箱</label><input onchange="updateComp(${idx},'email',this.value)" value="${esc(comp.data.email)}"></div>
+          <div><label>微信</label><input onchange="updateComp(${idx},'wechat',this.value)" value="${esc(comp.data.wechat)}"></div>
+        </div>`;
+    case 'player-music':
+      return `<label>选择音乐（Ctrl多选）</label>
+        <select multiple size="4" onchange="updateCompMusic(${idx}, this)">
+          ${musics.map(m => `<option value="${esc(m.data)}" ${comp.data.tracks.includes(m.data) ? 'selected' : ''}>${esc(m.name)}</option>`).join('')}
+        </select>
+        <p style="font-size:11px;color:#888;margin-top:5px;">${musics.length} 首已上传</p>
+        <label>主题</label>
+        <select onchange="updateComp(${idx},'theme',this.value)">
+          <option value="gradient" ${comp.data.theme === 'gradient' ? 'selected' : ''}>渐变紫</option>
+          <option value="dark" ${comp.data.theme === 'dark' ? 'selected' : ''}>深色</option>
+          <option value="light" ${comp.data.theme === 'light' ? 'selected' : ''}>浅色</option>
+        </select>
+        <div style="display:flex;gap:15px;margin-top:10px;flex-wrap:wrap;">
+          <label style="display:flex;align-items:center;gap:5px;font-weight:normal;"><input type="checkbox" ${comp.data.autoplay ? 'checked' : ''} onchange="updateComp(${idx},'autoplay',this.checked)"> 自动播放</label>
+          <label style="display:flex;align-items:center;gap:5px;font-weight:normal;"><input type="checkbox" ${comp.data.loop ? 'checked' : ''} onchange="updateComp(${idx},'loop',this.checked)"> 循环</label>
+          <label style="display:flex;align-items:center;gap:5px;font-weight:normal;"><input type="checkbox" ${comp.data.shuffle ? 'checked' : ''} onchange="updateComp(${idx},'shuffle',this.checked)"> 随机</label>
+        </div>`;
+    case 'player-video':
+      return `<label>选择已上传视频</label>
+        <select onchange="updateComp(${idx},'src',this.value)">
+          <option value="">-- 选择视频 --</option>
+          ${videos.map(v => `<option value="${esc(v.data)}" ${comp.data.src === v.data ? 'selected' : ''}>${esc(v.name)}</option>`).join('')}
+        </select>
+        <label>或网络URL</label>
+        <input placeholder="https://..." onchange="updateComp(${idx},'src',this.value)" value="${comp.data.src && !comp.data.src.startsWith('blob:') ? esc(comp.data.src) : ''}">
+        <label>说明文字</label>
+        <input onchange="updateComp(${idx},'caption',this.value)" value="${esc(comp.data.caption)}">`;
+    case 'custom':
+      return `<label>直接写 HTML/CSS/JS</label>
+        <textarea rows="6" onchange="updateComp(${idx},'code',this.value)" style="font-family:monospace;background:#1a1a2e;color:#0f0;">${esc(comp.data.code)}</textarea>`;
+    default:
+      return `<label>内容</label><input onchange="updateComp(${idx},'text',this.value)" value="${esc(comp.data.text || '')}">`;
+  }
+}
+function updateComp(idx, key, value) { components[idx].data[key] = value; renderComponents(); autoSave(); }
+function updateCompGallery(idx, sel) { components[idx].data.images = Array.from(sel.selectedOptions).map(o => o.value); renderComponents(); autoSave(); }
+function updateCompGalleryUrls(idx, text) {
+  const urls = text.split('\n').map(s => s.trim()).filter(Boolean);
+  const localImgs = components[idx].data.images.filter(s => !s.startsWith('http'));
+  components[idx].data.images = localImgs.concat(urls);
+  renderComponents(); autoSave();
+}
+function updateCompVideoType(idx, type) { components[idx].data.type = type; components[idx].data.src = ''; renderComponents(); autoSave(); }
+function updateCompMusic(idx, sel) { components[idx].data.tracks = Array.from(sel.selectedOptions).map(o => o.value); renderComponents(); autoSave(); }
+function updateCompList(idx, value) { components[idx].data.items = value.split('\n').filter(s => s.trim()); renderComponents(); autoSave(); }
+
+// ================== 文件上传 ==================
+async function storeFile(file, type) {
+  const id = 'f_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+  const blob = new Blob([file], { type: file.type });
+  await idbPut(id, blob, type, file.name);
+  return { id, name: file.name, data: URL.createObjectURL(blob), mime: file.type };
+}
+function handleMusicDrop(e) { e.preventDefault(); e.currentTarget.classList.remove('dragover'); handleMusic(e.dataTransfer.files); }
+async function handleMusic(files) {
+  const progress = document.getElementById('musicProgress');
+  const fill = document.getElementById('musicFill');
+  const valid = Array.from(files).filter(f => f.type.startsWith('audio/'));
+  if (!valid.length) return;
+  progress.style.display = 'block'; let loaded = 0;
+  for (const file of valid) {
+    const rec = await storeFile(file, 'music');
+    musics.push(rec);
+    loaded++; fill.style.width = (loaded / valid.length * 100) + '%';
+    renderMusicList(); renderComponents();
+  }
+  autoSave();
+  setTimeout(() => { progress.style.display = 'none'; fill.style.width = '0%'; }, 600);
+}
+function renderMusicList() {
+  document.getElementById('musicList').innerHTML = musics.map((m, i) =>
+    `<div class="file-item"><span>🎵</span><span>${esc(m.name)}</span><span class="remove" onclick="removeMusic(${i})">✕</span></div>`).join('');
+}
+async function removeMusic(i) { try { await idbDelete(musics[i].id); } catch (e) {} musics.splice(i, 1); renderMusicList(); renderComponents(); autoSave(); }
+
+function handleImageDrop(e) { e.preventDefault(); e.currentTarget.classList.remove('dragover'); handleImages(e.dataTransfer.files); }
+async function handleImages(files) {
+  const progress = document.getElementById('imgProgress');
+  const fill = document.getElementById('imgFill');
+  const valid = Array.from(files).filter(f => f.type.startsWith('image/'));
+  if (!valid.length) return;
+  progress.style.display = 'block'; let loaded = 0;
+  for (const file of valid) {
+    const rec = await storeFile(file, 'image');
+    images.push(rec);
+    loaded++; fill.style.width = (loaded / valid.length * 100) + '%';
+    renderImageList(); renderComponents();
+  }
+  autoSave();
+  setTimeout(() => { progress.style.display = 'none'; fill.style.width = '0%'; }, 600);
+}
+function renderImageList() {
+  document.getElementById('imageList').innerHTML = images.map((img, i) =>
+    `<div class="file-item"><img src="${img.data}"><span>${esc(img.name)}</span><span class="remove" onclick="removeImage(${i})">✕</span></div>`).join('');
+}
+async function removeImage(i) { try { await idbDelete(images[i].id); } catch (e) {} images.splice(i, 1); renderImageList(); renderComponents(); autoSave(); }
+
+function handleVideoDrop(e) { e.preventDefault(); e.currentTarget.classList.remove('dragover'); handleVideos(e.dataTransfer.files); }
+async function handleVideos(files) {
+  const progress = document.getElementById('vidProgress');
+  const fill = document.getElementById('vidFill');
+  const valid = Array.from(files).filter(f => f.type.startsWith('video/'));
+  if (!valid.length) return;
+  progress.style.display = 'block'; let loaded = 0;
+  for (const file of valid) {
+    const rec = await storeFile(file, 'video');
+    videos.push(rec);
+    loaded++; fill.style.width = (loaded / valid.length * 100) + '%';
+    renderVideoList(); renderComponents();
+  }
+  autoSave();
+  setTimeout(() => { progress.style.display = 'none'; fill.style.width = '0%'; }, 600);
+}
+function renderVideoList() {
+  document.getElementById('videoList').innerHTML = videos.map((v, i) =>
+    `<div class="file-item"><video src="${v.data}" muted></video><span>${esc(v.name)}</span><span class="remove" onclick="removeVideo(${i})">✕</span></div>`).join('');
+}
+async function removeVideo(i) { try { await idbDelete(videos[i].id); } catch (e) {} videos.splice(i, 1); renderVideoList(); renderComponents(); autoSave(); }
+
+// ================== 预览 ==================
+function renderPreview() {
+  const preview = document.getElementById('livePreview');
+  let html = '';
+  components.forEach(comp => { html += renderCompPreview(comp); });
+  const cnText = document.getElementById('cnInput').value;
+  if (cnText.trim()) html += '<div class="preview-section-cn"><p style="font-size:12px;color:#4CAF50;font-weight:bold;margin-bottom:10px;">🈶 中文输入区预览</p>' + translateChinese(cnText) + '</div>';
+  const codeText = document.getElementById('codeInput').value;
+  if (codeText.trim()) html += '<div class="preview-section-code"><p style="font-size:12px;color:#2196F3;font-weight:bold;margin-bottom:10px;">💻 代码输入区预览</p>' + codeText + '</div>';
+  preview.innerHTML = html || '<p style="color:#aaa;text-align:center;margin-top:80px;">添加内容后显示预览</p>';
+}
+function renderCompPreview(comp) {
+  switch (comp.type) {
+    case 'heading': return `<h1 style="font-size:${comp.data.size}px;color:${comp.data.color};text-align:center;margin:15px 0;">${esc(comp.data.text)}</h1>`;
+    case 'text': return `<p style="font-size:16px;line-height:1.8;margin:10px 0;">${esc(comp.data.content).replace(/\n/g, '<br>')}</p>`;
+    case 'image': return comp.data.src ? `<div style="text-align:center;margin:10px 0;"><img src="${comp.data.src}" style="max-width:100%;border-radius:8px;"><p style="color:#888;font-size:12px;">${esc(comp.data.caption)}</p></div>` : '';
+    case 'gallery': return `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px;margin:10px 0;">${comp.data.images.map(s => `<img src="${s}" style="width:100%;height:100px;object-fit:cover;border-radius:6px;">`).join('')}</div>`;
+    case 'video':
+      if (comp.data.type === 'online' && comp.data.src.startsWith('bili:')) return `<iframe src="https://player.bilibili.com/player.html?bvid=${comp.data.src.slice(5)}" width="100%" height="300" frameborder="0" allowfullscreen style="border-radius:8px;"></iframe>`;
+      if (comp.data.type === 'online' && comp.data.src.startsWith('yt:')) return `<iframe src="https://www.youtube.com/embed/${comp.data.src.slice(3)}" width="100%" height="300" frameborder="0" allowfullscreen style="border-radius:8px;"></iframe>`;
+      return comp.data.src ? `<video controls style="max-width:100%;border-radius:8px;"><source src="${comp.data.src}"></video>` : '';
+    case 'music': {
+      if (!comp.data.tracks.length) return '';
+      let h = '<div style="background:linear-gradient(135deg,#667eea,#764ba2);color:white;padding:15px;border-radius:10px;margin:10px 0;">';
+      comp.data.tracks.forEach((t, i) => {
+        const n = musics.find(m => m.data === t)?.name || '未知音乐';
+        h += `<div style="margin-top:8px;"><p style="font-size:13px;margin-bottom:4px;">🎵 ${i + 1}. ${esc(n)}</p><audio controls style="width:100%;" ${comp.data.autoplay && i === 0 ? 'autoplay' : ''} ${comp.data.loop ? 'loop' : ''}><source src="${t}"></audio></div>`;
+      });
+      return h + '</div>';
+    }
+    case 'button': return `<div style="text-align:center;margin:15px 0;"><a href="${esc(comp.data.link)}" target="_blank" style="display:inline-block;padding:12px 35px;background:${comp.data.color};color:white;text-decoration:none;border-radius:8px;font-weight:bold;">${esc(comp.data.text)}</a></div>`;
+    case 'divider': return `<hr style="border:none;border-top:2px ${comp.data.style} ${comp.data.color};width:${comp.data.width}%;margin:20px auto;">`;
+    case 'list': return `<ul style="margin:15px 0;padding-left:35px;">${comp.data.items.map(i => `<li style="margin:5px 0;">${esc(i)}</li>`).join('')}</ul>`;
+    case 'quote': return `<blockquote style="border-left:4px solid #4CAF50;padding:15px;margin:15px 0;background:#f9f9f9;font-style:italic;">"${esc(comp.data.text)}"<br><small style="color:#888;">— ${esc(comp.data.author)}</small></blockquote>`;
+    case 'countdown': {
+      const target = new Date(+comp.data.year, +comp.data.month - 1, +comp.data.day, +(comp.data.hour || 0), +(comp.data.minute || 0)).getTime();
+      return `<div style="text-align:center;padding:25px;background:#f0f8ff;border-radius:8px;margin:15px 0;">
+        <p style="font-size:14px;color:#666;">距离 ${comp.data.year}-${comp.data.month}-${comp.data.day} 还有</p>
+        <p id="preview-cd${comp.id}" style="font-size:36px;font-weight:bold;color:#4CAF50;">⏰</p></div>
+        <script>(function(){var el=document.getElementById("preview-cd${comp.id}");if(!el)return;var T=${target};function tick(){var t=T-Date.now();if(t<0){el.innerHTML="已到期！";return;}el.innerHTML=Math.floor(t/86400000)+"天 "+Math.floor(t%86400000/3600000)+"时 "+Math.floor(t%3600000/60000)+"分";}tick();setInterval(tick,1000);})();<\/script>`;
+    }
+    case 'contact': return `<div style="background:#f5f5f5;padding:20px;border-radius:8px;margin:15px 0;">
+      ${comp.data.name ? `<p>👤 ${esc(comp.data.name)}</p>` : ''}
+      ${comp.data.phone ? `<p>📱 ${esc(comp.data.phone)}</p>` : ''}
+      ${comp.data.email ? `<p>📧 ${esc(comp.data.email)}</p>` : ''}
+      ${comp.data.wechat ? `<p>💬 ${esc(comp.data.wechat)}</p>` : ''}
+    </div>`;
+    case 'player-music': return renderMusicPlayerPreview(comp);
+    case 'player-video': return renderVideoPlayerPreview(comp);
+    case 'custom': return comp.data.code;
+    default: return '';
+  }
+}
+
+// ================== 独立音乐播放器 ==================
+function renderMusicPlayerPreview(comp) {
+  if (!comp.data.tracks.length) return '<div style="padding:15px;background:#fff3cd;border-radius:8px;color:#856404;">⚠ 未选择音乐，请在组件设置里选择</div>';
+  const pid = 'mp' + comp.id;
+  const theme = comp.data.theme || 'gradient';
+  const bg = theme === 'dark' ? '#222' : theme === 'light' ? '#f0f0f0' : 'linear-gradient(135deg,#667eea,#764ba2)';
+  const color = theme === 'light' ? '#333' : '#fff';
+  const trackNames = comp.data.tracks.map(t => musics.find(m => m.data === t)?.name || '未知');
+  return `<div class="mini-mp" id="${pid}" style="background:${bg};color:${color};padding:16px;border-radius:14px;margin:15px 0;box-shadow:0 4px 15px rgba(0,0,0,.15);font-family:inherit;">
+    <div style="display:flex;align-items:center;gap:12px;">
+      <div style="width:48px;height:48px;border-radius:50%;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:22px;">🎵</div>
+      <div style="flex:1;min-width:0;">
+        <div class="mp-title" style="font-weight:bold;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(trackNames[0])}</div>
+        <div class="mp-index" style="font-size:11px;opacity:.7;margin-top:3px;">1 / ${trackNames.length}</div>
+      </div>
+    </div>
+    <div style="margin-top:12px;">
+      <input type="range" class="mp-progress" min="0" max="100" value="0" style="width:100%;accent-color:#fff;cursor:pointer;">
+      <div style="display:flex;justify-content:space-between;font-size:11px;opacity:.7;margin-top:3px;">
+        <span class="mp-time">0:00</span><span class="mp-dur">0:00</span>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-top:10px;flex-wrap:wrap;">
+      <button class="mp-prev" style="background:rgba(255,255,255,.2);color:${color};border:none;border-radius:50%;width:36px;height:36px;font-size:16px;cursor:pointer;margin:0;">⏮</button>
+      <button class="mp-play" style="background:rgba(255,255,255,.9);color:#333;border:none;border-radius:50%;width:48px;height:48px;font-size:20px;cursor:pointer;margin:0;">▶</button>
+      <button class="mp-next" style="background:rgba(255,255,255,.2);color:${color};border:none;border-radius:50%;width:36px;height:36px;font-size:16px;cursor:pointer;margin:0;">⏭</button>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;margin-top:10px;">
+      <span style="font-size:14px;">🔊</span>
+      <input type="range" class="mp-volume" min="0" max="100" value="80" style="flex:1;accent-color:#fff;cursor:pointer;">
+      <button class="mp-loop" title="循环" style="background:${comp.data.loop ? 'rgba(255,255,255,.5)' : 'rgba(255,255,255,.15)'};color:${color};border:none;border-radius:6px;padding:4px 8px;font-size:12px;cursor:pointer;margin:0;">🔁</button>
+      <button class="mp-shuffle" title="随机" style="background:${comp.data.shuffle ? 'rgba(255,255,255,.5)' : 'rgba(255,255,255,.15)'};color:${color};border:none;border-radius:6px;padding:4px 8px;font-size:12px;cursor:pointer;margin:0;">🔀</button>
+    </div>
+    <audio class="mp-audio" preload="metadata"></audio>
+  </div>
+  <script>
+  (function(){
+    var root = document.getElementById('${pid}');
+    if (!root) return;
+    var audio = root.querySelector('.mp-audio');
+    var playBtn = root.querySelector('.mp-play');
+    var prevBtn = root.querySelector('.mp-prev');
+    var nextBtn = root.querySelector('.mp-next');
+    var progress = root.querySelector('.mp-progress');
+    var timeEl = root.querySelector('.mp-time');
+    var durEl = root.querySelector('.mp-dur');
+    var volEl = root.querySelector('.mp-volume');
+    var titleEl = root.querySelector('.mp-title');
+    var indexEl = root.querySelector('.mp-index');
+    var loopBtn = root.querySelector('.mp-loop');
+    var shuffleBtn = root.querySelector('.mp-shuffle');
+    var tracks = ${JSON.stringify(comp.data.tracks)};
+    var names = ${JSON.stringify(trackNames)};
+    var current = 0;
+    var loop = ${comp.data.loop ? 'true' : 'false'};
+    var shuffle = ${comp.data.shuffle ? 'true' : 'false'};
+    audio.volume = 0.8;
+    function load(i) {
+      if (!tracks[i]) return;
+      current = i;
+      audio.src = tracks[i];
+      titleEl.textContent = names[i] || '未知';
+      indexEl.textContent = (i+1) + ' / ' + tracks.length;
+      progress.value = 0;
+      timeEl.textContent = '0:00';
+      durEl.textContent = '0:00';
+    }
+    function fmt(s) {
+      if (!isFinite(s)) return '0:00';
+      var m = Math.floor(s/60); var sec = Math.floor(s%60);
+      return m + ':' + (sec<10?'0':'') + sec;
+    }
+    audio.addEventListener('loadedmetadata', function(){ durEl.textContent = fmt(audio.duration); });
+    audio.addEventListener('timeupdate', function(){
+      if (audio.duration) {
+        progress.value = (audio.currentTime / audio.duration) * 100;
+        timeEl.textContent = fmt(audio.currentTime);
+      }
+    });
+    audio.addEventListener('ended', function(){
+      if (loop) { audio.play(); return; }
+      if (shuffle) { var n = Math.floor(Math.random()*tracks.length); if (n===current) n=(n+1)%tracks.length; load(n); audio.play(); return; }
+      if (current < tracks.length-1) { load(current+1); audio.play(); }
+      else { playBtn.textContent = '▶'; }
+    });
+    playBtn.addEventListener('click', function(){
+      if (audio.paused) { audio.play().catch(function(){}); playBtn.textContent = '⏸'; }
+      else { audio.pause(); playBtn.textContent = '▶'; }
+    });
+    prevBtn.addEventListener('click', function(){
+      if (current > 0) { load(current-1); audio.play().catch(function(){}); playBtn.textContent = '⏸'; }
+    });
+    nextBtn.addEventListener('click', function(){
+      if (current < tracks.length-1) { load(current+1); audio.play().catch(function(){}); playBtn.textContent = '⏸'; }
+    });
+    progress.addEventListener('input', function(){
+      if (audio.duration) audio.currentTime = (progress.value/100) * audio.duration;
+    });
+    volEl.addEventListener('input', function(){ audio.volume = volEl.value/100; });
+    loopBtn.addEventListener('click', function(){
+      loop = !loop;
+      loopBtn.style.background = loop ? 'rgba(255,255,255,.5)' : 'rgba(255,255,255,.15)';
+    });
+    shuffleBtn.addEventListener('click', function(){
+      shuffle = !shuffle;
+      shuffleBtn.style.background = shuffle ? 'rgba(255,255,255,.5)' : 'rgba(255,255,255,.15)';
+    });
+    load(0);
+    ${comp.data.autoplay ? "setTimeout(function(){audio.play().then(function(){playBtn.textContent='⏸';}).catch(function(){});},300);" : ''}
+  })();
+  <\/script>`;
+}
+
+// ================== 独立视频播放器 ==================
+function renderVideoPlayerPreview(comp) {
+  if (!comp.data.src) return '<div style="padding:15px;background:#fff3cd;border-radius:8px;color:#856404;">⚠ 未选择视频，请在组件设置里选择</div>';
+  const vid = 'vp' + comp.id;
+  return `<div class="mini-vp" id="${vid}" style="background:#000;border-radius:12px;overflow:hidden;margin:15px 0;position:relative;box-shadow:0 4px 15px rgba(0,0,0,.2);">
+    <video class="vp-video" src="${comp.data.src}" preload="metadata" style="width:100%;display:block;max-height:60vh;background:#000;"></video>
+    <div class="vp-center" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:64px;height:64px;background:rgba(0,0,0,.55);border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;color:white;font-size:28px;transition:opacity .2s;">▶</div>
+    <div class="vp-controls" style="position:absolute;left:0;right:0;bottom:0;background:linear-gradient(transparent,rgba(0,0,0,.85));padding:10px 14px 12px;color:white;font-family:inherit;">
+      <input type="range" class="vp-progress" min="0" max="100" value="0" style="width:100%;accent-color:#4CAF50;cursor:pointer;">
+      <div style="display:flex;align-items:center;gap:10px;margin-top:6px;flex-wrap:wrap;">
+        <button class="vp-play" style="background:transparent;color:white;border:none;font-size:16px;cursor:pointer;padding:0;margin:0;">▶</button>
+        <span class="vp-time" style="font-size:12px;opacity:.9;">0:00 / 0:00</span>
+        <div style="flex:1;"></div>
+        <span style="font-size:14px;">🔊</span>
+        <input type="range" class="vp-volume" min="0" max="100" value="80" style="width:70px;accent-color:#4CAF50;cursor:pointer;">
+        <button class="vp-fs" style="background:transparent;color:white;border:none;font-size:16px;cursor:pointer;padding:0;margin:0;">⛶</button>
+      </div>
+    </div>
+    ${comp.data.caption ? `<div style="background:rgba(0,0,0,.8);color:#ddd;padding:8px 14px;font-size:12px;text-align:center;">${esc(comp.data.caption)}</div>` : ''}
+  </div>
+  <script>
+  (function(){
+    var root = document.getElementById('${vid}');
+    if (!root) return;
+    var video = root.querySelector('.vp-video');
+    var centerBtn = root.querySelector('.vp-center');
+    var playBtn = root.querySelector('.vp-play');
+    var progress = root.querySelector('.vp-progress');
+    var timeEl = root.querySelector('.vp-time');
+    var volEl = root.querySelector('.vp-volume');
+    var fsBtn = root.querySelector('.vp-fs');
+    video.volume = 0.8;
+    function fmt(s) {
+      if (!isFinite(s)) return '0:00';
+      var m = Math.floor(s/60); var sec = Math.floor(s%60);
+      return m + ':' + (sec<10?'0':'') + sec;
+    }
+    function updateTime() {
+      timeEl.textContent = fmt(video.currentTime) + ' / ' + fmt(video.duration);
+    }
+    function togglePlay() {
+      if (video.paused) { video.play().catch(function(){}); }
+      else { video.pause(); }
+    }
+    video.addEventListener('click', togglePlay);
+    centerBtn.addEventListener('click', togglePlay);
+    playBtn.addEventListener('click', togglePlay);
+    video.addEventListener('play', function(){
+      centerBtn.style.opacity = '0';
+      playBtn.textContent = '⏸';
+    });
+    video.addEventListener('pause', function(){
+      centerBtn.style.opacity = '1';
+      playBtn.textContent = '▶';
+    });
+    video.addEventListener('timeupdate', function(){
+      if (video.duration) progress.value = (video.currentTime / video.duration) * 100;
+      updateTime();
+    });
+    video.addEventListener('loadedmetadata', updateTime);
+    progress.addEventListener('input', function(){
+      if (video.duration) video.currentTime = (progress.value/100) * video.duration;
+    });
+    volEl.addEventListener('input', function(){ video.volume = volEl.value/100; });
+    fsBtn.addEventListener('click', function(){
+      if (root.requestFullscreen) root.requestFullscreen();
+      else if (video.webkitEnterFullscreen) video.webkitEnterFullscreen();
+    });
+  })();
+  <\/script>`;
+}
+
+// ================== 导出 ==================
+function blobToDataURL(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
+async function buildMediaMap() {
+  const map = new Map();
+  const all = [...images, ...videos, ...musics];
+  const total = all.length;
+  let done = 0;
+  for (const item of all) {
+    if (map.has(item.data)) continue;
+    try {
+      const rec = await idbGet(item.id);
+      if (rec && rec.blob) {
+        const dataURL = await blobToDataURL(rec.blob);
+        map.set(item.data, dataURL);
+      }
+    } catch (e) { console.warn('转换失败:', item.name, e); }
+    done++;
+    document.getElementById('exportStatus').textContent = `正在内嵌媒体 ${done}/${total}…`;
+  }
+  return map;
+}
+function replaceBlobUrls(str, map) {
+  if (!str) return str;
+  let result = str;
+  for (const [blobUrl, dataUrl] of map.entries()) {
+    if (result.indexOf(blobUrl) !== -1) result = result.split(blobUrl).join(dataUrl);
+  }
+  return result;
+}
+
+async function generatePage() {
+  saveCurrentPage();
+  const exportBtn = document.getElementById('exportBtn');
+  const mask = document.getElementById('exportMask');
+  const status = document.getElementById('exportStatus');
+  exportBtn.disabled = true;
+  mask.classList.add('show');
+  status.textContent = '正在收集媒体文件…';
+
+  try {
+    let totalMediaBytes = 0;
+    for (const m of [...images, ...videos, ...musics]) {
+      try { const rec = await idbGet(m.id); if (rec && rec.blob) totalMediaBytes += rec.blob.size; } catch (e) {}
+    }
+    const totalMediaMB = totalMediaBytes / 1024 / 1024;
+    if (totalMediaMB > 200) {
+      if (!confirm(`媒体总大小约 ${totalMediaMB.toFixed(1)} MB，导出 HTML 会更大。\n可能导致浏览器打开缓慢或无法播放。\n\n仍要继续吗？`)) {
+        mask.classList.remove('show'); exportBtn.disabled = false; return;
+      }
+    }
+
+    const mediaMap = await buildMediaMap();
+    status.textContent = '正在生成 HTML…';
+
+    const clonedPages = pages.map(p => ({
+      id: p.id, title: p.title, bg: p.bg, cnInput: p.cnInput, codeInput: p.codeInput,
+      components: p.components.map(c => {
+        const nd = JSON.parse(JSON.stringify({ id: c.id, type: c.type, data: c.data }));
+        if (nd.data.src) nd.data.src = replaceBlobUrls(nd.data.src, mediaMap);
+        if (Array.isArray(nd.data.images)) nd.data.images = nd.data.images.map(s => replaceBlobUrls(s, mediaMap));
+        if (Array.isArray(nd.data.tracks)) nd.data.tracks = nd.data.tracks.map(s => replaceBlobUrls(s, mediaMap));
+        if (nd.data.code) nd.data.code = replaceBlobUrls(nd.data.code, mediaMap);
+        return { id: nd.id, type: nd.type, data: nd.data };
+      })
+    }));
+
+    const siteTitle = document.getElementById('pageTitle').value || '我的网站';
+
+    const pageBodies = clonedPages.map((p, idx) => {
+      let compHTML = '';
+      p.components.forEach(comp => { compHTML += renderCompForExport(comp); });
+      const cnHTML = p.cnInput.trim() ? translateChinese(p.cnInput) : '';
+      const rawCode = p.codeInput.trim() ? p.codeInput : '';
+      return `<div class="page-content" id="page-content-${p.id}" style="display:${idx === 0 ? 'block' : 'none'};">
+        <div class="page-inner" style="background:${p.bg};padding:20px;border-radius:12px;">
+          ${compHTML}${cnHTML}${rawCode}
+        </div>
+      </div>`;
+    }).join('\n');
+
+    const navTags = clonedPages.map((p, idx) =>
+      `<button class="nav-tag ${idx === 0 ? 'active' : ''}" data-page-id="${p.id}" onclick="showPageById(${p.id})">
+        ${idx === 0 ? '🏠 主页' : esc(p.title)}
+      </button>`
+    ).join('');
+
+    const finalHTML = `<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>${esc(siteTitle)}</title>
+<style>
+body { font-family: "Microsoft YaHei", "PingFang SC", sans-serif; margin: 0; padding: 0; background: #f0f2f5; }
+.nav { display: flex; gap: 4px; flex-wrap: wrap; padding: 8px 20px; background: #fff; box-shadow: 0 2px 8px rgba(0,0,0,.1); position: sticky; top: 0; z-index: 99; align-items: center; }
+.nav-tag { padding: 8px 16px; border: 1px solid #ddd; border-radius: 8px 8px 0 0; background: #f5f5f5; color: #555; cursor: pointer; font-weight: bold; font-size: 14px; margin: 0; }
+.nav-tag.active { background: #4CAF50; color: white; border-color: #4CAF50; }
+.nav-tag:hover { background: #e8f5e9; color: #2e7d32; }
+.nav-tag.active:hover { background: #45a049; color: white; }
+.container { max-width: 800px; margin: 20px auto; padding: 0 10px; }
+.page-inner { min-height: 200px; }
+</style>
+</head>
+<body>
+<div class="nav">${navTags}</div>
+<div class="container">
+${pageBodies}
+</div>
+<script>
+function showPageById(pid) {
+  document.querySelectorAll('.page-content').forEach(function(el) {
+    el.style.display = el.id === 'page-content-' + pid ? 'block' : 'none';
+  });
+  document.querySelectorAll('.nav-tag').forEach(function(el) {
+    el.classList.toggle('active', el.getAttribute('data-page-id') == pid);
+  });
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+<\/script>
+</body>
+</html>`;
+
+    status.textContent = '正在生成文件…';
+    const blob = new Blob([finalHTML], { type: 'text/html;charset=utf-8' });
+    const sizeMB = (blob.size / 1024 / 1024).toFixed(2);
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = siteTitle + '.html';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+
+    status.textContent = `✅ 导出完成！文件 ${sizeMB} MB`;
+    setTimeout(() => { mask.classList.remove('show'); exportBtn.disabled = false; }, 1500);
+  } catch (e) {
+    console.error(e);
+    status.textContent = '❌ 导出失败：' + e.message;
+    setTimeout(() => { mask.classList.remove('show'); exportBtn.disabled = false; }, 3000);
+  }
+}
+
+function renderCompForExport(comp) {
+  switch (comp.type) {
+    case 'heading': return `<h1 style="font-size:${comp.data.size}px;color:${comp.data.color};text-align:center;margin:20px 0;">${esc(comp.data.text)}</h1>\n`;
+    case 'text': return `<p style="font-size:16px;line-height:1.8;margin:15px 0;">${esc(comp.data.content).replace(/\n/g, '<br>')}</p>\n`;
+    case 'image': return comp.data.src ? `<div style="text-align:center;margin:15px 0;"><img src="${comp.data.src}" style="max-width:100%;border-radius:8px;"><p style="color:#888;font-size:12px;">${esc(comp.data.caption)}</p></div>\n` : '';
+    case 'gallery': return `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin:15px 0;">${comp.data.images.map(s => `<img src="${s}" style="width:100%;height:120px;object-fit:cover;border-radius:6px;">`).join('')}</div>\n`;
+    case 'video':
+      if (comp.data.type === 'online' && comp.data.src.startsWith('bili:'))
+        return `<div style="margin:15px 0;"><iframe src="https://player.bilibili.com/player.html?bvid=${comp.data.src.slice(5)}" width="100%" height="400" frameborder="0" allowfullscreen style="border-radius:8px;"></iframe></div>\n`;
+      if (comp.data.type === 'online' && comp.data.src.startsWith('yt:'))
+        return `<div style="margin:15px 0;"><iframe src="https://www.youtube.com/embed/${comp.data.src.slice(3)}" width="100%" height="400" frameborder="0" allowfullscreen style="border-radius:8px;"></iframe></div>\n`;
+      return comp.data.src ? `<div style="text-align:center;margin:15px 0;"><video controls style="max-width:100%;border-radius:8px;"><source src="${comp.data.src}"></video></div>\n` : '';
+    case 'music': {
+      if (!comp.data.tracks.length) return '';
+      let h = `<div style="background:linear-gradient(135deg,#667eea,#764ba2);color:white;padding:20px;border-radius:12px;margin:15px 0;">`;
+      comp.data.tracks.forEach((t, i) => {
+        const n = musics.find(m => m.data === t)?.name || '未知';
+        h += `<div style="margin-top:10px;"><p style="font-size:13px;margin-bottom:5px;">🎵 ${i + 1}. ${esc(n)}</p><audio controls ${comp.data.autoplay && i === 0 ? 'autoplay' : ''} ${comp.data.loop ? 'loop' : ''} style="width:100%;"><source src="${t}"></audio></div>`;
+      });
+      return h + `</div>`;
+    }
+    case 'button': return `<div style="text-align:center;margin:20px 0;"><a href="${esc(comp.data.link)}" target="_blank" style="display:inline-block;padding:15px 40px;background:${comp.data.color};color:white;text-decoration:none;border-radius:8px;font-weight:bold;">${esc(comp.data.text)}</a></div>\n`;
+    case 'divider': return `<hr style="border:none;border-top:2px ${comp.data.style} ${comp.data.color};width:${comp.data.width}%;margin:20px auto;">\n`;
+    case 'list': return `<ul style="margin:15px 0;padding-left:35px;">${comp.data.items.map(i => `<li style="margin:5px 0;">${esc(i)}</li>`).join('')}</ul>\n`;
+    case 'quote': return `<blockquote style="border-left:4px solid #4CAF50;padding:15px;margin:15px 0;background:#f9f9f9;font-style:italic;">"${esc(comp.data.text)}"<br><small style="color:#888;">— ${esc(comp.data.author)}</small></blockquote>\n`;
+    case 'countdown': {
+      const target = new Date(+comp.data.year, +comp.data.month - 1, +comp.data.day, +(comp.data.hour || 0), +(comp.data.minute || 0)).getTime();
+      return `<div style="text-align:center;padding:25px;background:#f0f8ff;border-radius:8px;margin:15px 0;"><p style="font-size:14px;color:#666;">距离 ${comp.data.year}-${comp.data.month}-${comp.data.day} 还有</p><p id="cd${comp.id}" style="font-size:36px;font-weight:bold;color:#4CAF50;">⏰</p></div>\n<script>setInterval(function(){var t=${target}-Date.now();var el=document.getElementById("cd${comp.id}");if(!el)return;if(t<0){el.innerHTML="已到期！";return;}el.innerHTML=Math.floor(t/86400000)+"天 "+Math.floor(t%86400000/3600000)+"时 "+Math.floor(t%3600000/60000)+"分";},1000)<\/script>\n`;
+    }
+    case 'contact': return `<div style="background:#f5f5f5;padding:20px;border-radius:8px;margin:15px 0;">
+      ${comp.data.name ? `<p>👤 ${esc(comp.data.name)}</p>` : ''}
+      ${comp.data.phone ? `<p>📱 ${esc(comp.data.phone)}</p>` : ''}
+      ${comp.data.email ? `<p>📧 ${esc(comp.data.email)}</p>` : ''}
+      ${comp.data.wechat ? `<p>💬 ${esc(comp.data.wechat)}</p>` : ''}
+    </div>\n`;
+    case 'player-music': return renderMusicPlayerPreview(comp) + '\n';
+    case 'player-video': return renderVideoPlayerPreview(comp) + '\n';
+    case 'custom': return comp.data.code + '\n';
+    default: return '';
+  }
+}
+
+// ================== 新增：保存项目 / 导入项目 ==================
+
+// 保存项目为 JSON 文件（续编用）
+function saveProjectFile() {
+  try {
+    // 先保存当前页输入
+    saveCurrentPage();
+    const project = {
+      version: 1,
+      title: document.getElementById('pageTitle').value,
+      savedAt: new Date().toISOString(),
+      pages: pages.map(p => ({
+        id: p.id,
+        title: p.title,
+        bg: p.bg,
+        components: p.components.map(c => ({ id: c.id, type: c.type, data: c.data, _collapsed: c._collapsed || false })),
+        cnInput: p.cnInput,
+        codeInput: p.codeInput
+      })),
+      currentPage: currentPage,
+      media: {
+        images: images.map(i => ({ name: i.name, id: i.id })),
+        videos: videos.map(v => ({ name: v.name, id: v.id })),
+        musics: musics.map(m => ({ name: m.name, id: m.id }))
+      }
+    };
+    const json = JSON.stringify(project, null, 2);
+    const blob = new Blob([json], { type: 'application/json;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    const dateStr = new Date().toLocaleDateString('zh-CN').replace(/\//g, '-');
+    a.download = '项目_' + dateStr + '.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+    alert('✅ 项目已保存！\n下次打开工具后点「📂 导入项目续编」选择这个 .json 文件即可继续编辑。\n\n注意：图片/音乐/视频存放在浏览器本地，换电脑或清缓存后需重新上传媒体。');
+  } catch (e) {
+    alert('保存项目失败：' + e.message);
+    console.error(e);
+  }
+}
+
+// 导入项目文件（续编用）
+function importProjectFile(file) {
+  if (!file) return;
+  if (!confirm('导入项目将覆盖当前编辑内容，确定吗？')) return;
+  const reader = new FileReader();
+  reader.onload = async function(ev) {
+    try {
+      const project = JSON.parse(ev.target.result);
+      if (!project.pages || !Array.isArray(project.pages)) {
+        throw new Error('不是有效的项目文件（缺少 pages 字段）');
+      }
+
+      // 恢复页面数据
+      pages = project.pages.map(p => ({
+        id: p.id != null ? p.id : pageIdCounter++,
+        title: p.title || '页面',
+        bg: p.bg || '#ffffff',
+        cnInput: p.cnInput || '',
+        codeInput: p.codeInput || '',
+        components: (p.components || []).map(c => ({
+          id: c.id,
+          type: c.type,
+          data: c.data,
+          _collapsed: c._collapsed
+        }))
+      }));
+
+      // 恢复计数器
+      pages.forEach(p => {
+        if (p.id >= pageIdCounter) pageIdCounter = p.id + 1;
+        p.components.forEach(c => { if (c.id >= compIdCounter) compIdCounter = c.id + 1; });
+      });
+
+      // 恢复当前页
+      currentPage = project.currentPage || 0;
+      if (currentPage >= pages.length) currentPage = 0;
+
+      // 清空旧媒体
+      images = [];
+      videos = [];
+      musics = [];
+
+      // 尝试从 IndexedDB 恢复媒体（同一浏览器同一电脑才有）
+      if (project.media) {
+        for (const info of (project.media.images || [])) {
+          try {
+            const rec = await idbGet(info.id);
+            if (rec && rec.blob) {
+              images.push({ name: info.name, id: info.id, data: URL.createObjectURL(rec.blob), mime: rec.type });
+            }
+          } catch (e) {}
+        }
+        for (const info of (project.media.videos || [])) {
+          try {
+            const rec = await idbGet(info.id);
+            if (rec && rec.blob) {
+              videos.push({ name: info.name, id: info.id, data: URL.createObjectURL(rec.blob), mime: rec.type });
+            }
+          } catch (e) {}
+        }
+        for (const info of (project.media.musics || [])) {
+          try {
+            const rec = await idbGet(info.id);
+            if (rec && rec.blob) {
+              musics.push({ name: info.name, id: info.id, data: URL.createObjectURL(rec.blob), mime: rec.type });
+            }
+          } catch (e) {}
+        }
+      }
+
+      // 刷新界面
+      loadPageToUI(currentPage);
+      renderPageBar();
+      renderMusicList();
+      renderImageList();
+      renderVideoList();
+      updateStorageBar();
+      saveCurrentPage();
+      autoSave();
+
+      // 统计恢复的媒体数量
+      const totalMedia = images.length + videos.length + musics.length;
+      let msg = '✅ 项目导入成功！可以继续编辑了。';
+      if (totalMedia === 0 && ((project.media && project.media.images && project.media.images.length) || (project.media && project.media.videos && project.media.videos.length) || (project.media && project.media.musics && project.media.musics.length))) {
+        msg += '\n\n⚠ 提示：媒体文件在原浏览器中有记录，但本地缓存未找到。请重新上传图片/音乐/视频。';
+      }
+      alert(msg);
+    } catch (e) {
+      alert('导入失败：' + e.message);
+      console.error(e);
+    }
+  };
+  reader.readAsText(file);
+}
+
+// ================== 初始化 ==================
+loadAutoSave();
+</script>
+</body>
+</html>
